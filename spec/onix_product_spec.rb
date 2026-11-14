@@ -100,6 +100,39 @@ RSpec.describe Meta4books::OnixProduct do
     end
   end
 
+  describe "edge cases" do
+    def product_from_xml(inner)
+      doc = Nokogiri::XML("<ONIXMessage><Product><ProductIdentifier><ProductIDType>03</ProductIDType>" \
+                          "<IDValue>9789000000001</IDValue></ProductIdentifier>#{inner}</Product></ONIXMessage>")
+      described_class.new(doc.at_xpath("/ONIXMessage/Product"), today: Date.new(2026, 11, 14)).to_h
+    end
+
+    it "keeps formatting of XHTML descriptions" do
+      book = product_from_xml("<CollateralDetail><TextContent><TextType>05</TextType>" \
+                              "<Text textformat=\"05\"><p>Hello <b>x</b></p><p>Second</p></Text></TextContent></CollateralDetail>")
+
+      expect(book[:texts][:description]).to match(/\AHello x\n+Second\z/)
+      expect(book[:texts][:description_html]).to include("<b>x</b>")
+    end
+
+    it "deduplicates related ISBNs" do
+      related = "<ProductIdentifier><ProductIDType>03</ProductIDType><IDValue>9781</IDValue></ProductIdentifier>" \
+                "<ProductIdentifier><ProductIDType>15</ProductIDType><IDValue>9781</IDValue></ProductIdentifier>"
+      book = product_from_xml("<RelatedMaterial><RelatedProduct><ProductRelationCode>05</ProductRelationCode>" \
+                              "#{related}</RelatedProduct></RelatedMaterial>")
+
+      expect(book[:related][:replaced_by]).to eq(["9781"])
+    end
+
+    it "falls back to a dated recommended retail price" do
+      book = product_from_xml("<ProductSupply><SupplyDetail><Price><PriceType>02</PriceType><PriceAmount>9.99</PriceAmount>" \
+                              "<PriceDate><PriceDateRole>15</PriceDateRole><Date>20200101</Date></PriceDate>" \
+                              "</Price></SupplyDetail></ProductSupply>")
+
+      expect(book[:price][:active]).to include(amount: 9.99, active: false)
+    end
+  end
+
   describe "a real Boekenbank response" do
     subject(:book) { product_from("onix_9789045547145.xml").to_h }
 

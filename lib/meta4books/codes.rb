@@ -15,7 +15,17 @@ module Meta4books
       "44" => ["Apply direct", "Niet bestelbaar door de boekhandel", false, "unavailable"],
       "47" => ["Remaindered", "Verramsjt", false, "unavailable"],
       "51" => ["Out of print", "Uitverkocht", false, "unavailable"],
-      "99" => ["Uncertain, contact supplier", "Onzeker, contacteer uitgever", false, "unavailable"]
+      "99" => ["Uncertain, contact supplier", "Onzeker, contacteer uitgever", false, "unavailable"],
+      # Not native to Boekenbank, but valid in list 65.
+      "40" => ["Not available (reason unspecified)", nil, false, "unavailable"],
+      "41" => ["Not available, replaced by new product", nil, false, "unavailable"],
+      "43" => ["No longer supplied by us", nil, false, "unavailable"],
+      "45" => ["Not available, publisher indicates OP", nil, false, "unavailable"],
+      "46" => ["Not available, withdrawn from sale", nil, false, "unavailable"],
+      "48" => ["Not available, reissued", nil, false, "unavailable"],
+      "49" => ["Not available, recalled", nil, false, "unavailable"],
+      "50" => ["Not available, not sold separately", nil, false, "unavailable"],
+      "52" => ["Not available, no longer stocked", nil, false, "unavailable"]
     }.freeze
 
     # List 64

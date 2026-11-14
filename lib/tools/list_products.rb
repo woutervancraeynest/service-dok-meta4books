@@ -75,7 +75,7 @@ module Tools
         total: result.total,
         limit: limit,
         offset: offset,
-        next_offset: offset + products.size < result.total.to_i ? offset + products.size : nil,
+        next_offset: offset + result.raw_count < result.total.to_i ? offset + result.raw_count : nil,
         modified_since_defaulted: modified_since.nil? ? true : nil
       }.compact
     end

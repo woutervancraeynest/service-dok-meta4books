@@ -39,6 +39,8 @@ module Tools
       end
 
       fields = list_param("fields")
+      raise InvalidParams, "fields requires a query" if fields.any? && terms.nil?
+
       unless fields.empty?
         invalid = fields - FIELDS
         raise InvalidParams, "Unknown fields: #{invalid.join(', ')}. Allowed: #{FIELDS.join(', ')}" if invalid.any?

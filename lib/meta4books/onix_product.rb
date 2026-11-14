@@ -234,8 +234,12 @@ module Meta4books
     def texts
       node.xpath("CollateralDetail/TextContent").each_with_object({}) do |content, result|
         key = Codes::TEXT_TYPES[text("TextType", content)]
-        raw = content.at_xpath("Text")&.text&.strip
-        next if key.nil? || raw.nil? || raw.empty? || result.key?(key.to_sym)
+        text_node = content.at_xpath("Text")
+        next unless text_node
+
+        # XHTML (textformat 05) arrives as child elements, HTML (02) as escaped/CDATA text.
+        raw = (text_node.element_children.any? ? text_node.inner_html : text_node.text).strip
+        next if key.nil? || raw.empty? || result.key?(key.to_sym)
 
         result[key.to_sym] = html_to_text(raw)
         result[:description_html] = raw if key == "description" && raw.match?(/<[a-z][^>]*>/i)
@@ -291,7 +295,8 @@ module Meta4books
     # List 51: 03 = this product replaces the related product, 05 = this product is replaced by it.
     def related
       related_isbns = lambda do |code|
-        node.xpath("RelatedMaterial/RelatedProduct[ProductRelationCode='#{code}']/ProductIdentifier/IDValue").map(&:text)
+        node.xpath("RelatedMaterial/RelatedProduct[ProductRelationCode='#{code}']/ProductIdentifier[ProductIDType='03']/IDValue")
+            .map { |id| id.text.strip }.uniq
       end
 
       {

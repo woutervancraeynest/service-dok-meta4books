@@ -1,3 +1,4 @@
+require "date"
 require_relative "../meta4books/client"
 
 module Tools
@@ -15,8 +16,10 @@ module Tools
     end
 
     def initialize(params, context)
+      raise InvalidParams, "params must be an object" unless params.nil? || params.is_a?(Hash)
+
       @params = params || {}
-      @context = context || {}
+      @context = context.is_a?(Hash) ? context : {}
     end
 
     private
@@ -42,7 +45,7 @@ module Tools
       value = param(name)
       return default if value.nil?
 
-      number = Integer(value.to_s, exception: false)
+      number = value.is_a?(Float) && value == value.floor ? value.to_i : Integer(value.to_s, 10, exception: false)
       raise InvalidParams, "#{name} must be an integer" if number.nil?
 
       number.clamp(min, max)
@@ -60,16 +63,33 @@ module Tools
       end
     end
 
-    # Accepts YYYY-MM-DD, YYYYMMDD, YYYY-MM-DDTHH:MM(:SS) or YYYYMMDDHHMMSS.
+    DATE_FORMAT = /\A(\d{4})-?(\d{2})-?(\d{2})\z/
+    DATETIME_FORMAT = /\A(\d{4})-?(\d{2})-?(\d{2})[T ](\d{2}):?(\d{2})(?::?(\d{2}))?(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?\z/
+
+    # Accepts YYYY-MM-DD or YYYYMMDD, and with with_time also YYYY-MM-DDTHH:MM(:SS)
+    # with an optional (ignored) timezone. Returns YYYYMMDD or YYYYMMDDHHMMSS.
     def date_param(name, with_time: false)
       value = param(name)
       return nil if value.nil?
 
-      digits = value.to_s.gsub(/[^0-9]/, "")
-      valid = with_time ? [8, 12, 14].include?(digits.length) : digits.length == 8
-      raise InvalidParams, "#{name} must be a date like 2026-11-14#{' or 2026-11-14T09:00' if with_time}" unless valid
+      str = value.to_s
+      if (match = str.match(DATE_FORMAT))
+        return validated_date(name, match[1], match[2], match[3])
+      end
 
-      digits.length == 12 ? "#{digits}00" : digits
+      match = with_time && str.match(DATETIME_FORMAT)
+      raise InvalidParams, "#{name} must be a date like 2026-11-14#{' or 2026-11-14T09:00' if with_time}" unless match
+
+      hour, minute, second = match[4].to_i, match[5].to_i, match[6].to_i
+      raise InvalidParams, "#{name} has an invalid time" if hour > 23 || minute > 59 || second > 59
+
+      validated_date(name, match[1], match[2], match[3]) + format("%02d%02d%02d", hour, minute, second)
+    end
+
+    def validated_date(name, year, month, day)
+      Date.new(year.to_i, month.to_i, day.to_i).strftime("%Y%m%d")
+    rescue Date::Error
+      raise InvalidParams, "#{name} is not a valid date"
     end
 
     def isbns_param(name, max:)

@@ -77,6 +77,29 @@ RSpec.describe DokService do
       expect(last_response.body).not_to include(SpecHelpers::API_KEY)
     end
 
+    it "treats a non-ONIX 200 response as an error, not as not found" do
+      stub_products({ "isbns" => "9789045547145" }, body: "<html><body>Maintenance</body></html>")
+
+      call_tool("get_book", params: { "isbn" => "9789045547145" })
+
+      expect(json_response["code"]).to eq("INVALID_RESPONSE")
+    end
+
+    it "maps a dropped connection" do
+      stub_request(:get, %r{api\.boekenbank\.be/api/products}).to_raise(EOFError)
+
+      call_tool("get_book", params: { "isbn" => "9789045547145" })
+
+      expect(json_response["code"]).to eq("UNREACHABLE")
+    end
+
+    it "rejects non-object params" do
+      post "/call", { tool: "get_book", params: "isbn", context: context_with_key }.to_json,
+           { "CONTENT_TYPE" => "application/json" }
+
+      expect(json_response["code"]).to eq("INVALID_PARAMS")
+    end
+
     it "maps a timeout" do
       stub_request(:get, %r{api\.boekenbank\.be/api/products}).to_timeout
 
@@ -149,6 +172,20 @@ RSpec.describe DokService do
       expect(json_response["error"]).to include("query or at least one filter")
     end
 
+    it "requires a query when fields are given" do
+      call_tool("search_books", params: { "fields" => ["title"], "nurs" => "280" })
+
+      expect(json_response["error"]).to include("fields requires a query")
+    end
+
+    it "rejects an unexpected response shape" do
+      stub_search({ "search_terms" => "koken" }, body: "[]")
+
+      call_tool("search_books", params: { "query" => "koken" })
+
+      expect(json_response["code"]).to eq("INVALID_RESPONSE")
+    end
+
     it "rejects unknown fields" do
       call_tool("search_books", params: { "query" => "koken", "fields" => ["isbn"] })
 
@@ -183,6 +220,28 @@ RSpec.describe DokService do
       expect(json_response["limit"]).to eq(25)
       expect(json_response["products"].first).to have_key("contributors")
       expect(json_response["next_offset"]).to be_nil
+    end
+
+    it "validates dates and accepts ISO timestamps with a timezone" do
+      stub = stub_products({ "mutatiedatum" => "20261101093000", "limit" => "8" }, body: fixture("onix_empty.xml"), total: 0)
+
+      call_tool("list_products", params: { "modified_since" => "2026-11-01T09:30:00+01:00", "limit" => "08" })
+      expect(stub).to have_been_requested
+
+      call_tool("list_products", params: { "modified_since" => "14/11/2026" })
+      expect(json_response["code"]).to eq("INVALID_PARAMS")
+
+      call_tool("list_products", params: { "modified_since" => "2026-02-30" })
+      expect(json_response["error"]).to include("not a valid date")
+    end
+
+    it "pages by raw product count, including empty records" do
+      stub_products({ "publisher" => "x" }.transform_keys { "uitgever" }, body: fixture("onix_empty.xml"), total: 5)
+
+      call_tool("list_products", params: { "publisher" => "x", "limit" => 1 })
+
+      expect(json_response["count"]).to eq(0)
+      expect(json_response["next_offset"]).to eq(1)
     end
 
     it "requires a filter" do

@@ -3,7 +3,8 @@ require "date"
 module Meta4books
   # Applies the Boekenbank pricing priority: an active special sale fixed
   # retail price (14), then an active fixed retail price (04), then an active
-  # special sale retail price (12), otherwise the recommended retail price (02).
+  # special sale retail price (12), otherwise the recommended retail price (02),
+  # which is used even when it carries an out-of-range date.
   module Prices
     module_function
 
@@ -13,7 +14,7 @@ module Meta4books
         match = prices.find { |price| price[:type_code] == type_code && active?(price, today) }
         return match if match
       end
-      nil
+      prices.find { |price| price[:type_code] == "02" }
     end
 
     def active?(price, today = Date.today)

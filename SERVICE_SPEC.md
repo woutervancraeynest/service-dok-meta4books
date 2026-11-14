@@ -11,6 +11,7 @@ Errors are returned with HTTP 200 as `{"error": "...", "code": "..."}`:
 | `NOT_FOUND` | `get_book`: ISBN unknown in Boekenbank |
 | `UNAUTHORIZED` | Boekenbank rejected the key (HTTP 401/403). The search API also needs a Meta4books contract or NDA |
 | `RATE_LIMITED` | HTTP 429 |
+| `INVALID_RESPONSE` | Boekenbank answered HTTP 200 with something other than ONIX XML or the expected search JSON |
 | `TIMEOUT` / `UNREACHABLE` | Network problems (read timeout 20 s, below Dok's 30 s proxy timeout) |
 | `HTTP_<status>` | Any other non-200 response |
 

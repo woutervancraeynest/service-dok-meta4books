@@ -24,7 +24,7 @@ module Meta4books
     OPEN_TIMEOUT = 5
     READ_TIMEOUT = 20
 
-    ProductsResult = Struct.new(:products, :count, :total, keyword_init: true)
+    ProductsResult = Struct.new(:products, :raw_count, :total, keyword_init: true)
 
     def self.from_context(context)
       api_key = context.dig("configuration", "api_key").to_s.strip
@@ -45,41 +45,47 @@ module Meta4books
 
     # Returns ProductsResult with Nokogiri <Product> nodes (namespaces removed).
     def products(params)
-      response = get(PRODUCTS_PATH, params)
+      response = get(PRODUCTS_PATH, params, accept: "application/xml, text/xml")
       doc = Nokogiri::XML(response.body)
       doc.remove_namespaces!
-      products = doc.xpath("/ONIXMessage/Product").reject { |p| p.at_xpath("ProductIdentifier").nil? }
+      unless doc.root&.name == "ONIXMessage"
+        raise Error.new("Boekenbank products API returned an unexpected (non-ONIX) response.", code: "INVALID_RESPONSE")
+      end
 
+      nodes = doc.xpath("/ONIXMessage/Product")
       ProductsResult.new(
-        products: products,
-        count: integer_header(response, "x-nr-of-products") || products.size,
-        total: integer_header(response, "x-tot-nr-of-products") || products.size
+        products: nodes.reject { |p| p.at_xpath("ProductIdentifier").nil? },
+        raw_count: nodes.size,
+        total: integer_header(response, "x-tot-nr-of-products") || nodes.size
       )
     end
 
     def search(params)
-      response = get(SEARCH_PATH, params)
-      JSON.parse(response.body)
+      response = get(SEARCH_PATH, params, accept: "application/json")
+      data = JSON.parse(response.body)
+      return data if data.is_a?(Hash) && (data["data"].nil? || data["data"].is_a?(Array))
+
+      raise Error.new("Boekenbank search API returned an unexpected response.", code: "INVALID_RESPONSE")
     rescue JSON::ParserError
-      raise Error.new("Boekenbank search API returned an invalid JSON response.")
+      raise Error.new("Boekenbank search API returned an invalid JSON response.", code: "INVALID_RESPONSE")
     end
 
     private
 
-    def get(path, params)
-      uri = URI.join(@base_url, path)
+    def get(path, params, accept:)
+      uri = URI("#{@base_url.chomp('/')}#{path}")
       uri.query = URI.encode_www_form(params.merge(key: @api_key))
 
       response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https",
                                  open_timeout: OPEN_TIMEOUT, read_timeout: READ_TIMEOUT) do |http|
-        http.request(Net::HTTP::Get.new(uri, "Accept" => "application/json, text/xml"))
+        http.request(Net::HTTP::Get.new(uri, "Accept" => accept))
       end
 
       check_status!(response)
       response
-    rescue Net::OpenTimeout, Net::ReadTimeout
+    rescue Net::OpenTimeout, Net::ReadTimeout, Net::WriteTimeout, Timeout::Error
       raise Error.new("Boekenbank did not respond in time. Try again with fewer ISBNs or a smaller limit.", code: "TIMEOUT")
-    rescue SocketError, SystemCallError, OpenSSL::SSL::SSLError => e
+    rescue SocketError, SystemCallError, IOError, Net::HTTPBadResponse, OpenSSL::SSL::SSLError => e
       raise Error.new("Could not reach Boekenbank (#{e.class}).", code: "UNREACHABLE")
     end
 
