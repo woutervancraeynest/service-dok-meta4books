@@ -1,0 +1,43 @@
+{
+  "page": 1,
+  "limit": 2,
+  "pages": 3,
+  "total": 5,
+  "data": [
+    {
+      "gtin13": "9789492499134",
+      "title": "Discover the Japanse art of life",
+      "subtitle": "from ikigai to shinrin-yoku",
+      "productForm": { "code": "BB", "shortLabel": "Hardback", "book": true, "digital": false, "audiovisual": false },
+      "languages": [{ "code": "eng", "label": "Engels" }],
+      "nur": { "code": "033", "label": "Stadsplattegronden" },
+      "themas": [{ "code": "VXM", "isMainSubject": true, "label": "Meditatie" }],
+      "numPages": 150,
+      "price": "10,00",
+      "priceAction": { "price": 7.0, "startDate": "2026-11-01", "endDate": "2026-11-30" },
+      "priceRegulated": { "price": 10.0, "startDate": "2021-04-29", "endDate": "2021-10-29" },
+      "priceIsFreeOfCharge": false,
+      "priceIsToBeAnnounced": false,
+      "aviLevelsNew": [{ "code": "E3" }],
+      "isbnFirstPublished": "20210429",
+      "publisher": "Japan Publication Trading Co",
+      "imprint": "Zen Books",
+      "availability": { "code": "10", "label": "Nog niet verschenen", "supplyDate": "20210716" },
+      "collection": { "title": "The Art of Living", "number": "Part II" },
+      "nstc": "545211452",
+      "frontCoverThumbnailUrl": "https://api.boekenbank.be/images/covers/thumbnail/9789/078/698/9789078698012.jpg",
+      "contributors": [
+        { "firstName": "Pierre", "lastName": "Du March\u00e9", "name": "Pierre Du March\u00e9", "role": { "code": "A01", "label": "Auteur" } }
+      ]
+    },
+    {
+      "gtin13": "9789022998908",
+      "title": "Gratis boekje",
+      "productForm": { "code": "BC", "shortLabel": "Paperback" },
+      "publisher": "Uitgeverij X",
+      "imprint": "",
+      "priceIsFreeOfCharge": true,
+      "availability": { "code": "21", "label": "Verschenen, in voorraad" }
+    }
+  ]
+}

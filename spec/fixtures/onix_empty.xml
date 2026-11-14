@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<ONIXMessage xmlns="http://ns.editeur.org/onix/3.0/reference" release="3.0">
+  <Header>
+    <Sender>
+      <SenderIdentifier>
+        <SenderIDType>23</SenderIDType>
+        <IDValue>BE0470860665</IDValue>
+      </SenderIdentifier>
+      <SenderName>Meta4books</SenderName>
+      <EmailAddress>Boekenbank@meta4books.be</EmailAddress>
+    </Sender>
+    <Addressee>
+      <AddresseeName>Boekhandel Beatrijs</AddresseeName>
+    </Addressee>
+    <MessageNumber>20230321152935</MessageNumber>
+    <SentDateTime>20230321T152935+0100</SentDateTime>
+  </Header>
+  <Product/>
+</ONIXMessage>

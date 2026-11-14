@@ -1,0 +1,12 @@
+# Environment files with credentials
+.env
+.env.*
+!.env.*.example
+
+# Ruby
+*.gem
+.bundle/
+vendor/bundle/
+
+# Local output
+tmp/

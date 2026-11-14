@@ -1,0 +1,148 @@
+{
+  "tools": [
+    {
+      "name": "search_books",
+      "description": "Search the Boekenbank (Meta4books) catalogue of Dutch-language and Belgian books by free text (title, author, publisher, imprint or ISBN) with optional filters. Returns compact results with ISBN, title, contributors, publisher, availability, active price and a cover thumbnail. Use get_book or get_books for full details.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search terms, at least 4 characters, separated by spaces. Wrap in double quotes for an exact phrase, e.g. \"Jeroen Meus\". Case-insensitive."
+          },
+          "fields": {
+            "type": "array",
+            "items": { "type": "string", "enum": ["gtin13", "title", "authors", "publisher_name", "imprint"] },
+            "description": "Limit the search to these fields. 'title' also covers subtitle and series name. Omit to search all fields."
+          },
+          "product_groups": {
+            "type": "array",
+            "items": { "type": "string", "enum": ["printbooks", "ebooks", "audiobooks", "other"] },
+            "description": "Only return products from these groups."
+          },
+          "nurs": {
+            "type": "string",
+            "description": "NUR codes or ranges, comma-separated, e.g. '280-284' or '400-410,412'."
+          },
+          "languages": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "ONIX list 74 language codes, e.g. ['dut', 'eng']."
+          },
+          "publication_date_from": { "type": "string", "description": "Publication date on or after, YYYY-MM-DD." },
+          "publication_date_to": { "type": "string", "description": "Publication date on or before, YYYY-MM-DD." },
+          "created_from": { "type": "string", "description": "Added to Boekenbank on or after, YYYY-MM-DD or YYYY-MM-DDTHH:MM." },
+          "created_until": { "type": "string", "description": "Added to Boekenbank before, YYYY-MM-DDTHH:MM (a date without time excludes that day)." },
+          "fixed_price_active": { "type": "boolean", "description": "true: only products whose Flemish fixed book price (GBP) is currently active." },
+          "sort_by": {
+            "type": "string",
+            "enum": ["relevance", "publication_date", "publisher_name", "gtin13"],
+            "description": "Sort field. Default relevance."
+          },
+          "sort_direction": { "type": "string", "enum": ["asc", "desc"], "description": "Default desc." },
+          "include_prices": { "type": "boolean", "description": "Include the active price. Default true." },
+          "limit": { "type": "integer", "description": "Results per page, 1-100. Default 20." },
+          "offset": { "type": "integer", "description": "Number of results to skip for paging. Use next_offset from the previous response." }
+        }
+      },
+      "annotations": { "read_only_hint": true, "destructive_hint": false, "idempotent_hint": true }
+    },
+    {
+      "name": "get_book",
+      "description": "Get all Boekenbank details of one book by ISBN/EAN: titles, contributors, series, publisher and imprint, NUR and Thema, AVI and age, pages, dimensions, description, availability, orderability, all prices with the active price (Boekenbank priority rules), replacement ISBNs and links to the front cover, back cover and reading excerpt.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "isbn": { "type": "string", "description": "ISBN-13/EAN-13 or ISBN-10. Hyphens are allowed." }
+        },
+        "required": ["isbn"]
+      },
+      "annotations": { "read_only_hint": true, "destructive_hint": false, "idempotent_hint": true }
+    },
+    {
+      "name": "get_books",
+      "description": "Get full Boekenbank details for up to 100 ISBNs in one call (same fields as get_book). Unknown ISBNs are listed in not_found. Use this for bulk checks of availability and prices.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "isbns": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Up to 100 ISBN-13/EAN-13 or ISBN-10 values."
+          }
+        },
+        "required": ["isbns"]
+      },
+      "annotations": { "read_only_hint": true, "destructive_hint": false, "idempotent_hint": true }
+    },
+    {
+      "name": "get_book_media",
+      "description": "Get links to the front cover, back cover and PDF reading excerpt for up to 100 ISBNs, with image size and last-modified date. Files are hosted publicly by Boekenbank; do not store copies unless a file is needed as a deliverable. To keep one, download it to /workspace/tmp/ and immediately call the Dok save_output tool with source_path.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "isbns": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Up to 100 ISBN-13/EAN-13 or ISBN-10 values."
+          }
+        },
+        "required": ["isbns"]
+      },
+      "annotations": { "read_only_hint": true, "destructive_hint": false, "idempotent_hint": true }
+    },
+    {
+      "name": "list_products",
+      "description": "List Boekenbank products by structured filters that free-text search does not support (publisher ID, Thema, AVI level, series, availability, orderability, media presence) and track new or changed titles since a date. Returns summaries by default. Keep queries narrow: Meta4books asks not to run heavy full loads.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "modified_since": { "type": "string", "description": "Only products changed since, YYYY-MM-DD or YYYY-MM-DDTHH:MM. Recommended for change tracking." },
+          "modified_until": { "type": "string", "description": "Only products last changed on or before, YYYY-MM-DD." },
+          "created_since": { "type": "string", "description": "Only products added to Boekenbank since, YYYY-MM-DD. Can include old books that were added recently." },
+          "publication_date_from": { "type": "string", "description": "Publication date on or after, YYYY-MM-DD." },
+          "publication_date_to": { "type": "string", "description": "Publication date on or before, YYYY-MM-DD." },
+          "publisher": { "type": "string", "description": "Text contained in the publisher name, e.g. 'lannoo'." },
+          "publisher_ids": { "type": "array", "items": { "type": "string" }, "description": "8-digit Boekenbank publisher IDs." },
+          "imprint": { "type": "string", "description": "Text contained in the imprint name." },
+          "series": { "type": "string", "description": "Text contained in the series name." },
+          "nurs": { "type": "string", "description": "NUR codes or ranges, comma-separated, e.g. '280-284'." },
+          "thema": { "type": "array", "items": { "type": "string" }, "description": "Thema codes or qualifiers, e.g. ['YFC', '5AJ']." },
+          "avi_new": { "type": "array", "items": { "type": "string" }, "description": "New AVI levels, e.g. ['E3', 'M4']." },
+          "avi_old": { "type": "array", "items": { "type": "string" }, "description": "Old AVI levels 1-9." },
+          "languages": { "type": "array", "items": { "type": "string" }, "description": "ONIX list 74 codes, e.g. ['dut']." },
+          "product_groups": {
+            "type": "array",
+            "items": { "type": "string", "enum": ["printbooks", "ebooks", "audiobooks", "other"] },
+            "description": "Only these product groups."
+          },
+          "product_forms": { "type": "array", "items": { "type": "string" }, "description": "ONIX product form codes, e.g. ['BB', 'BC']." },
+          "availability": { "type": "array", "items": { "type": "string" }, "description": "ONIX list 65 availability codes, e.g. ['20', '21']." },
+          "orderable": { "type": "boolean", "description": "true: only products orderable by bookstores and libraries on Boekenbank." },
+          "sales_restricted": { "type": "boolean", "description": "Filter on presence (true) or absence (false) of a Belgian sales restriction." },
+          "front_cover": { "type": "string", "enum": ["any", "large"], "description": "Only products with a front cover (any size or large)." },
+          "has_description": { "type": "boolean", "description": "Filter on presence of a product description." },
+          "has_excerpt": { "type": "boolean", "description": "Filter on presence of a PDF reading excerpt." },
+          "distributor": { "type": "string", "description": "3-letter Boekenbank distributor code." },
+          "fund_codes": { "type": "array", "items": { "type": "string" }, "description": "6-letter Boekenbank fund codes." },
+          "discount_codes": { "type": "array", "items": { "type": "string", "enum": ["A", "S", "W", "O"] }, "description": "AWSO discount codes." },
+          "detail": { "type": "string", "enum": ["summary", "full"], "description": "summary (default, up to 100 per page) or full product details (up to 25 per page)." },
+          "limit": { "type": "integer", "description": "Products per page. Default 25." },
+          "offset": { "type": "integer", "description": "Number of products to skip. Use next_offset from the previous response." }
+        }
+      },
+      "annotations": { "read_only_hint": true, "destructive_hint": false, "idempotent_hint": true }
+    }
+  ],
+  "configuration": {
+    "api_key": {
+      "label": "Boekenbank API key",
+      "type": "password",
+      "description": "Data user key from Meta4books. The search tool also requires a Meta4books contract or NDA for this key."
+    }
+  },
+  "runtime": {
+    "port": 8080,
+    "health_check": "/health"
+  }
+}
